@@ -1,0 +1,37 @@
+FROM resin/%%RESIN_MACHINE_NAME%%-debian:buster
+
+ENV DBUS_SYSTEM_BUS_ADDRESS unix:path=/host/run/dbus/system_bus_socket
+
+ENV INITSYSTEM on
+
+RUN apt-get update \
+	&& apt-get install -y \
+		hostapd \
+		dnsmasq \
+		build-essential \
+		libdbus-1-dev \
+		libglib2.0-dev \
+		python-dev \
+		python-pip \
+		python-setuptools \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && systemctl mask hostapd \
+    && systemctl mask dnsmasq
+
+RUN pip install wheel
+
+RUN pip install python-networkmanager
+
+WORKDIR /usr/src/app
+
+RUN update-rc.d hostapd defaults
+
+COPY hostapd.init-d /etc/default/hostapd
+COPY hostapd.conf /etc/hostapd/hostapd.conf
+
+COPY dnsmasq.conf /etc/dnsmasq.conf
+
+COPY start.sh .
+
+CMD ["bash", "start.sh"]
